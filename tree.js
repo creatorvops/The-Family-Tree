@@ -1,62 +1,95 @@
+let svg;
+let viewBox = { x: 0, y: 0, w: 2000, h: 2000 };
+let isPanning = false;
+let startPan = { x: 0, y: 0 };
+let startViewBox = { x: 0, y: 0 };
+
 async function loadTree() {
   const data = await fetch("family.json").then(r => r.json());
-  const svg = document.getElementById("tree-svg");
+  svg = document.getElementById("tree-svg");
 
-  const startX = 1000;
-  const startY = 100;
+  // Set initial viewBox
+  svg.setAttribute("viewBox", `${viewBox.x} ${viewBox.y} ${viewBox.w} ${viewBox.h}`);
 
-  drawBranchGroup(data.branches, startX, startY);
+  drawBackgroundTree();
+  drawBranches(data);
+
+  setupPanZoom();
+  setupSearch();
+  setupReset();
 }
 
-function drawBranchGroup(branches, x, y) {
-  const spacing = 300;
+function drawBackgroundTree() {
+  // Simple trunk
+  const trunk = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+  trunk.setAttribute("x", 950);
+  trunk.setAttribute("y", 800);
+  trunk.setAttribute("width", 100);
+  trunk.setAttribute("height", 400);
+  trunk.setAttribute("class", "trunk");
+  svg.appendChild(trunk);
+}
+
+function drawBranches(data) {
+  const centerX = 1000;
+  const centerY = 800; // top of trunk
+
+  const branches = data.branches || [];
+  const angleStep = Math.PI / (branches.length + 1);
+  const radius = 500;
 
   branches.forEach((branch, i) => {
-    const bx = x + (i - branches.length / 2) * spacing;
-    const by = y + 200;
+    const angle = -Math.PI / 2 + angleStep * (i + 1);
+    const bx = centerX + Math.cos(angle) * radius;
+    const by = centerY + Math.sin(angle) * radius;
+
+    // main branch line
+    drawLine(centerX, centerY, bx, by);
 
     drawBranch(branch, bx, by);
-
-    // Draw trunk connection
-    drawLine(x, y, bx, by);
   });
 }
 
 function drawBranch(branch, x, y) {
-  addText(branch.name, x, y - 20, "branch-label");
+  addText(branch.name, x, y - 30, "branch-label");
 
   let expanded = false;
-  let group = [];
+  const group = [];
 
-  const toggle = () => {
-    expanded = !expanded;
-    group.forEach(el => el.style.display = expanded ? "block" : "none");
-  };
+  const marriages = branch.marriages || [];
+  const marriageSpacing = 120;
 
-  // Click to expand/collapse
-  svg.addEventListener("click", (e) => {
-    if (e.target.textContent === branch.name) toggle();
-  });
-
-  branch.marriages.forEach((marriage, i) => {
+  marriages.forEach((marriage, i) => {
     const mx = x;
-    const my = y + (i + 1) * 150;
+    const my = y + (i + 1) * marriageSpacing;
 
-    drawLine(x, y, mx, my);
+    const line = drawLine(x, y, mx, my);
+    group.push(line);
 
-    marriage.children.forEach((child, j) => {
-      const cx = mx + (j - marriage.children.length / 2) * 120;
-      const cy = my + 100;
+    const children = marriage.children || [];
+    const childSpacing = 100;
+
+    children.forEach((child, j) => {
+      const cx = mx + (j - (children.length - 1) / 2) * childSpacing;
+      const cy = my + 80;
 
       const leaf = drawLeaf(child, cx, cy);
-      const line = drawLine(mx, my, cx, cy);
+      const cline = drawLine(mx, my, cx, cy);
 
-      group.push(leaf, line);
+      group.push(leaf, cline);
     });
   });
 
-  // Hide children initially
+  // hide children initially
   group.forEach(el => el.style.display = "none");
+
+  // toggle on branch label click
+  svg.addEventListener("click", (e) => {
+    if (e.target.textContent === branch.name) {
+      expanded = !expanded;
+      group.forEach(el => el.style.display = expanded ? "block" : "none");
+    }
+  });
 }
 
 function drawLeaf(name, x, y) {
@@ -91,4 +124,110 @@ function addText(text, x, y, cls) {
   t.textContent = text;
   svg.appendChild(t);
 }
+
+/* Zoom & pan */
+
+function setupPanZoom() {
+  svg.addEventListener("mousedown", (e) => {
+    isPanning = true;
+    svg.style.cursor = "grabbing";
+    startPan = { x: e.clientX, y: e.clientY };
+    startViewBox = { x: viewBox.x, y: viewBox.y };
+  });
+
+  window.addEventListener("mousemove", (e) => {
+    if (!isPanning) return;
+    const dx = (startPan.x - e.clientX) * (viewBox.w / svg.clientWidth);
+    const dy = (startPan.y - e.clientY) * (viewBox.h / svg.clientHeight);
+    viewBox.x = startViewBox.x + dx;
+    viewBox.y = startViewBox.y + dy;
+    updateViewBox();
+  });
+
+  window.addEventListener("mouseup", () => {
+    isPanning = false;
+    svg.style.cursor = "grab";
+  });
+
+  svg.addEventListener("wheel", (e) => {
+    e.preventDefault();
+    const zoomFactor = 1.1;
+    const direction = e.deltaY > 0 ? 1 : -1;
+    const factor = direction > 0 ? zoomFactor : 1 / zoomFactor;
+
+    const mx = viewBox.x + (e.offsetX / svg.clientWidth) * viewBox.w;
+    const my = viewBox.y + (e.offsetY / svg.clientHeight) * viewBox.h;
+
+    viewBox.w *= factor;
+    viewBox.h *= factor;
+    viewBox.x = mx - (e.offsetX / svg.clientWidth) * viewBox.w;
+    viewBox.y = my - (e.offsetY / svg.clientHeight) * viewBox.h;
+
+    updateViewBox();
+  });
+}
+
+function updateViewBox() {
+  svg.setAttribute("viewBox", `${viewBox.x} ${viewBox.y} ${viewBox.w} ${viewBox.h}`);
+}
+
+/* Search */
+
+function setupSearch() {
+  const input = document.getElementById("search-input");
+  const button = document.getElementById("search-button");
+
+  button.addEventListener("click", () => {
+    const query = input.value.trim().toLowerCase();
+    if (!query) return;
+
+    // clear previous highlights
+    Array.from(svg.querySelectorAll(".leaf")).forEach(l => l.classList.remove("highlight"));
+
+    const labels = Array.from(svg.querySelectorAll(".label"));
+    let firstMatch = null;
+
+    labels.forEach(label => {
+      if (label.textContent.toLowerCase().includes(query)) {
+        const cx = parseFloat(label.getAttribute("x"));
+        const cy = parseFloat(label.getAttribute("y")) - 5;
+
+        const leaf = findLeafAt(cx, cy);
+        if (leaf) {
+          leaf.classList.add("highlight");
+          if (!firstMatch) firstMatch = { x: cx, y: cy };
+        }
+      }
+    });
+
+    if (firstMatch) {
+      // center view on first match
+      viewBox.x = firstMatch.x - viewBox.w / 2;
+      viewBox.y = firstMatch.y - viewBox.h / 2;
+      updateViewBox();
+    }
+  });
+}
+
+function findLeafAt(x, y) {
+  const leaves = Array.from(svg.querySelectorAll(".leaf"));
+  return leaves.find(leaf => {
+    const cx = parseFloat(leaf.getAttribute("cx"));
+    const cy = parseFloat(leaf.getAttribute("cy"));
+    const r = parseFloat(leaf.getAttribute("r"));
+    return Math.hypot(cx - x, cy - y) <= r + 2;
+  });
+}
+
+/* Reset */
+
+function setupReset() {
+  const btn = document.getElementById("reset-view");
+  btn.addEventListener("click", () => {
+    viewBox = { x: 0, y: 0, w: 2000, h: 2000 };
+    updateViewBox();
+    Array.from(svg.querySelectorAll(".leaf")).forEach(l => l.classList.remove("highlight"));
+  });
+}
+
 loadTree();
