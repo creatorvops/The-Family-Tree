@@ -1,30 +1,24 @@
 {
-  "name": "Mukum",
+  "name": "Mukum (Gwonum)",
   "branches": [
     {
       "name": "Teyim Branch",
       "marriages": [
         {
-          "spouses": ["Teyim", "Elvid Song"],
+          "spouses": ["Teyim", "Ebod Sang"],
           "children": ["Aaron"]
         },
         {
-          "spouses": ["Teyim", "Edith"],
-          "children": ["David Mukum", "Petra Yebo", "Petra Tilda"]
+          "spouses": ["Teyim", "₤Bih"],
+          "children": ["David Mukum", "Petro Tebd"]
         },
         {
           "spouses": ["Teyim", "Other Wives"],
           "children": [
-            "Ekwoche Bene",
+            "Ebodchick Beke",
             "Rebecca",
-            "Florence",
-            "Winifred",
-            "Ekwoche Ralph",
-            "Bernd",
-            "Enochus Bate",
-            "Shemshon Shem Mukum",
-            "Enochus Keogh",
-            "Emily"
+            "Ebodchick Womteck (Batibo)",
+            "Ebodchick Bageh (Batibo)"
           ]
         }
       ]
@@ -34,30 +28,20 @@
       "name": "Njeck Branch",
       "marriages": [
         {
-          "spouses": ["Njeck", "Elvid Sume (Petu)"],
+          "spouses": ["Njeck", "Ebod Susana (Natu)"],
           "children": [
             "Marcus Teyim",
-            "Felix Edith",
-            "Elvid Annew",
-            "Eugene"
+            "Febe Etih",
+            "Ebod Anwei",
+            "Engwari"
           ]
         },
         {
-          "spouses": ["Njeck", "Elvid Esyam"],
-          "children": ["Ekwoche Kenneth", "Ekwoche Teyim"]
-        },
-        {
-          "spouses": ["Njeck", "Ebod Susana (Bihala)"],
+          "spouses": ["Njeck", "Ebod Nyaah"],
           "children": [
-            "Marcus Teyim",
-            "Felic Edith",
-            "Ebod Anwel",
-            "Enqueen"
+            "Ebodchick Kwodam",
+            "Ebodchick Tozeck"
           ]
-        },
-        {
-          "spouses": ["Njeck", "Ebod Riyah"],
-          "children": ["Ebodchuk Reandon", "Ebodchuk Tazack"]
         }
       ]
     },
