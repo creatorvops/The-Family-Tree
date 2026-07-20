@@ -1,224 +1,164 @@
-let svg;
-let viewBox = { x: 0, y: 0, w: 2000, h: 2000 };
-let isPanning = false;
-let startPan = { x: 0, y: 0 };
-let startViewBox = { x: 0, y: 0 };
+const canvas = document.getElementById("tree-canvas");
+const ctx = canvas.getContext("2d");
+
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight - 80;
+
+let view = { x: 0, y: 0, scale: 1 };
+let dragging = false;
+let dragStart = { x: 0, y: 0 };
+
+let leaves = [];
 
 async function loadTree() {
   const data = await fetch("family.json").then(r => r.json());
-  svg = document.getElementById("tree-svg");
-
-  svg.setAttribute("viewBox", `${viewBox.x} ${viewBox.y} ${viewBox.w} ${viewBox.h}`);
-
-  drawTrunk();
-  drawMainBranches(data.branches);
-
-  setupPanZoom();
-  setupSearch();
-  setupReset();
+  drawTree(data);
+  animate();
 }
 
-function drawTrunk() {
-  const trunk = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-  trunk.setAttribute("x", 950);
-  trunk.setAttribute("y", 900);
-  trunk.setAttribute("width", 100);
-  trunk.setAttribute("height", 300);
-  trunk.setAttribute("class", "trunk");
-  svg.appendChild(trunk);
+function worldToScreen(x, y) {
+  return {
+    x: (x - view.x) * view.scale,
+    y: (y - view.y) * view.scale
+  };
 }
 
-function drawMainBranches(branches) {
-  const centerX = 1000;
-  const centerY = 900;
+function screenToWorld(x, y) {
+  return {
+    x: x / view.scale + view.x,
+    y: y / view.scale + view.y
+  };
+}
 
+function drawTree(data) {
+  leaves = [];
+
+  const trunkX = canvas.width / 2;
+  const trunkY = canvas.height - 100;
+
+  drawTrunk(trunkX, trunkY);
+
+  const branches = data.branches || [];
   const angleStep = Math.PI / (branches.length + 1);
-  const radius = 450;
 
   branches.forEach((branch, i) => {
     const angle = -Math.PI / 2 + angleStep * (i + 1);
-    const bx = centerX + Math.cos(angle) * radius;
-    const by = centerY + Math.sin(angle) * radius;
-
-    drawLine(centerX, centerY, bx, by);
-    drawBranch(branch, bx, by);
+    drawBranch(branch, trunkX, trunkY - 200, angle, 200);
   });
 }
 
-function drawBranch(branch, x, y) {
-  addText(branch.name, x, y - 30, "branch-label");
+function drawTrunk(x, y) {
+  ctx.fillStyle = "#5d4037";
+  ctx.fillRect(x - 40, y - 200, 80, 200);
+}
 
-  let expanded = false;
-  const group = [];
+function drawBranch(branch, x, y, angle, length) {
+  const endX = x + Math.cos(angle) * length;
+  const endY = y + Math.sin(angle) * length;
 
-  const marriages = branch.marriages || [];
-  const marriageSpacing = 140;
+  ctx.strokeStyle = "#4e342e";
+  ctx.lineWidth = 8;
+  ctx.beginPath();
+  ctx.moveTo(...Object.values(worldToScreen(x, y)));
+  ctx.lineTo(...Object.values(worldToScreen(endX, endY)));
+  ctx.stroke();
 
+  drawLabel(branch.name, endX, endY);
+
+  let marriages = branch.marriages || [];
   marriages.forEach((marriage, i) => {
-    const mx = x;
-    const my = y + (i + 1) * marriageSpacing;
-
-    const line = drawLine(x, y, mx, my);
-    group.push(line);
-
-    const children = marriage.children || [];
-    const childSpacing = 110;
-
-    children.forEach((child, j) => {
-      const cx = mx + (j - (children.length - 1) / 2) * childSpacing;
-      const cy = my + 90;
-
-      const leaf = drawLeaf(child, cx, cy);
-      const cline = drawLine(mx, my, cx, cy);
-
-      group.push(leaf, cline);
-    });
-  });
-
-  group.forEach(el => el.style.display = "none");
-
-  svg.addEventListener("click", (e) => {
-    if (e.target.textContent === branch.name) {
-      expanded = !expanded;
-      group.forEach(el => el.style.display = expanded ? "block" : "none");
-    }
+    const childAngle = angle - 0.4 + (i * 0.4);
+    drawMarriage(marriage, endX, endY, childAngle, 150);
   });
 }
 
-function drawLeaf(name, x, y) {
-  const leaf = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-  leaf.setAttribute("cx", x);
-  leaf.setAttribute("cy", y);
-  leaf.setAttribute("r", 25);
-  leaf.setAttribute("class", "leaf");
-  svg.appendChild(leaf);
+function drawMarriage(marriage, x, y, angle, length) {
+  const endX = x + Math.cos(angle) * length;
+  const endY = y + Math.sin(angle) * length;
 
-  addText(name, x, y + 5, "label");
-  return leaf;
-}
+  ctx.strokeStyle = "#6d4c41";
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.moveTo(...Object.values(worldToScreen(x, y)));
+  ctx.lineTo(...Object.values(worldToScreen(endX, endY)));
+  ctx.stroke();
 
-function drawLine(x1, y1, x2, y2) {
-  const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
-  line.setAttribute("x1", x1);
-  line.setAttribute("y1", y1);
-  line.setAttribute("x2", x2);
-  line.setAttribute("y2", y2);
-  line.setAttribute("class", "branch-line");
-  svg.appendChild(line);
-  return line;
-}
-
-function addText(text, x, y, cls) {
-  const t = document.createElementNS("http://www.w3.org/2000/svg", "text");
-  t.setAttribute("x", x);
-  t.setAttribute("y", y);
-  t.setAttribute("text-anchor", "middle");
-  t.setAttribute("class", cls);
-  t.textContent = text;
-  svg.appendChild(t);
-}
-
-/* Zoom & Pan */
-
-function setupPanZoom() {
-  svg.addEventListener("mousedown", (e) => {
-    isPanning = true;
-    svg.style.cursor = "grabbing";
-    startPan = { x: e.clientX, y: e.clientY };
-    startViewBox = { x: viewBox.x, y: viewBox.y };
-  });
-
-  window.addEventListener("mousemove", (e) => {
-    if (!isPanning) return;
-    const dx = (startPan.x - e.clientX) * (viewBox.w / svg.clientWidth);
-    const dy = (startPan.y - e.clientY) * (viewBox.h / svg.clientHeight);
-    viewBox.x = startViewBox.x + dx;
-    viewBox.y = startViewBox.y + dy;
-    updateViewBox();
-  });
-
-  window.addEventListener("mouseup", () => {
-    isPanning = false;
-    svg.style.cursor = "grab";
-  });
-
-  svg.addEventListener("wheel", (e) => {
-    e.preventDefault();
-    const zoomFactor = 1.1;
-    const direction = e.deltaY > 0 ? 1 : -1;
-    const factor = direction > 0 ? zoomFactor : 1 / zoomFactor;
-
-    const mx = viewBox.x + (e.offsetX / svg.clientWidth) * viewBox.w;
-    const my = viewBox.y + (e.offsetY / svg.clientHeight) * viewBox.h;
-
-    viewBox.w *= factor;
-    viewBox.h *= factor;
-    viewBox.x = mx - (e.offsetX / svg.clientWidth) * viewBox.w;
-    viewBox.y = my - (e.offsetY / svg.clientHeight) * viewBox.h;
-
-    updateViewBox();
+  const children = marriage.children || [];
+  children.forEach((child, i) => {
+    const leafAngle = angle - 0.3 + (i * 0.3);
+    drawLeaf(child, endX, endY, leafAngle, 80);
   });
 }
 
-function updateViewBox() {
-  svg.setAttribute("viewBox", `${viewBox.x} ${viewBox.y} ${viewBox.w} ${viewBox.h}`);
+function drawLeaf(name, x, y, angle, length) {
+  const lx = x + Math.cos(angle) * length;
+  const ly = y + Math.sin(angle) * length;
+
+  leaves.push({ name, x: lx, y: ly, sway: Math.random() * 0.02 });
+
+  drawLabel(name, lx, ly);
 }
+
+function drawLabel(text, x, y) {
+  const pos = worldToScreen(x, y);
+  ctx.fillStyle = "#000";
+  ctx.font = `${14 * view.scale}px Arial`;
+  ctx.textAlign = "center";
+  ctx.fillText(text, pos.x, pos.y);
+}
+
+function animate() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  leaves.forEach(leaf => {
+    leaf.x += Math.sin(Date.now() * leaf.sway) * 0.3;
+  });
+
+  loadTree();
+  requestAnimationFrame(animate);
+}
+
+/* Zoom */
+canvas.addEventListener("wheel", (e) => {
+  e.preventDefault();
+  const zoom = e.deltaY < 0 ? 1.1 : 0.9;
+
+  const mouse = screenToWorld(e.offsetX, e.offsetY);
+
+  view.scale *= zoom;
+  view.x = mouse.x - (e.offsetX / view.scale);
+  view.y = mouse.y - (e.offsetY / view.scale);
+});
+
+/* Pan */
+canvas.addEventListener("mousedown", (e) => {
+  dragging = true;
+  dragStart = screenToWorld(e.clientX, e.clientY);
+});
+
+canvas.addEventListener("mousemove", (e) => {
+  if (!dragging) return;
+  const pos = screenToWorld(e.clientX, e.clientY);
+  view.x -= pos.x - dragStart.x;
+  view.y -= pos.y - dragStart.y;
+});
+
+canvas.addEventListener("mouseup", () => dragging = false);
 
 /* Search */
+document.getElementById("search-button").addEventListener("click", () => {
+  const query = document.getElementById("search-input").value.toLowerCase();
+  const match = leaves.find(l => l.name.toLowerCase().includes(query));
 
-function setupSearch() {
-  const input = document.getElementById("search-input");
-  const button = document.getElementById("search-button");
-
-  button.addEventListener("click", () => {
-    const query = input.value.trim().toLowerCase();
-    if (!query) return;
-
-    Array.from(svg.querySelectorAll(".leaf")).forEach(l => l.classList.remove("highlight"));
-
-    const labels = Array.from(svg.querySelectorAll(".label"));
-    let firstMatch = null;
-
-    labels.forEach(label => {
-      if (label.textContent.toLowerCase().includes(query)) {
-        const cx = parseFloat(label.getAttribute("x"));
-        const cy = parseFloat(label.getAttribute("y")) - 5;
-
-        const leaf = findLeafAt(cx, cy);
-        if (leaf) {
-          leaf.classList.add("highlight");
-          if (!firstMatch) firstMatch = { x: cx, y: cy };
-        }
-      }
-    });
-
-    if (firstMatch) {
-      viewBox.x = firstMatch.x - viewBox.w / 2;
-      viewBox.y = firstMatch.y - viewBox.h / 2;
-      updateViewBox();
-    }
-  });
-}
-
-function findLeafAt(x, y) {
-  const leaves = Array.from(svg.querySelectorAll(".leaf"));
-  return leaves.find(leaf => {
-    const cx = parseFloat(leaf.getAttribute("cx"));
-    const cy = parseFloat(leaf.getAttribute("cy"));
-    const r = parseFloat(leaf.getAttribute("r"));
-    return Math.hypot(cx - x, cy - y) <= r + 2;
-  });
-}
+  if (match) {
+    view.x = match.x - canvas.width / (2 * view.scale);
+    view.y = match.y - canvas.height / (2 * view.scale);
+  }
+});
 
 /* Reset */
-
-function setupReset() {
-  const btn = document.getElementById("reset-view");
-  btn.addEventListener("click", () => {
-    viewBox = { x: 0, y: 0, w: 2000, h: 2000 };
-    updateViewBox();
-    Array.from(svg.querySelectorAll(".leaf")).forEach(l => l.classList.remove("highlight"));
-  });
-}
+document.getElementById("reset-view").addEventListener("click", () => {
+  view = { x: 0, y: 0, scale: 1 };
+});
 
 loadTree();
