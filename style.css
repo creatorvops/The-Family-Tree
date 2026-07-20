@@ -1,7 +1,7 @@
 body {
+  margin: 0;
   font-family: Arial, sans-serif;
   background: linear-gradient(#87ceeb, #e6f2ff);
-  margin: 0;
   text-align: center;
 }
 
@@ -26,58 +26,9 @@ h1 {
   cursor: pointer;
 }
 
-#tree-container {
-  width: 100%;
+#tree-canvas {
+  width: 100vw;
   height: calc(100vh - 80px);
-  overflow: hidden;
+  display: block;
   background: radial-gradient(circle at bottom, #7cb342 0, #558b2f 40%, #e6f2ff 80%);
-}
-
-#tree-svg {
-  width: 100%;
-  height: 100%;
-  cursor: grab;
-}
-
-/* Tree visuals */
-.trunk {
-  fill: #5d4037;
-  stroke: #3e2723;
-  stroke-width: 4;
-}
-
-.branch-line {
-  stroke: #4e342e;
-  stroke-width: 4;
-  stroke-linecap: round;
-}
-
-.leaf {
-  fill: #4caf50;
-  stroke: #2e7d32;
-  stroke-width: 2;
-  cursor: pointer;
-  transition: 0.2s;
-}
-
-.leaf:hover {
-  fill: #66bb6a;
-}
-
-.label {
-  font-size: 12px;
-  fill: #000;
-  pointer-events: none;
-}
-
-.branch-label {
-  font-size: 16px;
-  fill: #3e2723;
-  font-weight: bold;
-}
-
-/* Search highlight */
-.highlight {
-  stroke: #ffeb3b;
-  stroke-width: 4;
 }
