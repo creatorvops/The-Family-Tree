@@ -8,44 +8,39 @@ async function loadTree() {
   const data = await fetch("family.json").then(r => r.json());
   svg = document.getElementById("tree-svg");
 
-  // Set initial viewBox
   svg.setAttribute("viewBox", `${viewBox.x} ${viewBox.y} ${viewBox.w} ${viewBox.h}`);
 
-  drawBackgroundTree();
-  drawBranches(data);
+  drawTrunk();
+  drawMainBranches(data.branches);
 
   setupPanZoom();
   setupSearch();
   setupReset();
 }
 
-function drawBackgroundTree() {
-  // Simple trunk
+function drawTrunk() {
   const trunk = document.createElementNS("http://www.w3.org/2000/svg", "rect");
   trunk.setAttribute("x", 950);
-  trunk.setAttribute("y", 800);
+  trunk.setAttribute("y", 900);
   trunk.setAttribute("width", 100);
-  trunk.setAttribute("height", 400);
+  trunk.setAttribute("height", 300);
   trunk.setAttribute("class", "trunk");
   svg.appendChild(trunk);
 }
 
-function drawBranches(data) {
+function drawMainBranches(branches) {
   const centerX = 1000;
-  const centerY = 800; // top of trunk
+  const centerY = 900;
 
-  const branches = data.branches || [];
   const angleStep = Math.PI / (branches.length + 1);
-  const radius = 500;
+  const radius = 450;
 
   branches.forEach((branch, i) => {
     const angle = -Math.PI / 2 + angleStep * (i + 1);
     const bx = centerX + Math.cos(angle) * radius;
     const by = centerY + Math.sin(angle) * radius;
 
-    // main branch line
     drawLine(centerX, centerY, bx, by);
-
     drawBranch(branch, bx, by);
   });
 }
@@ -57,7 +52,7 @@ function drawBranch(branch, x, y) {
   const group = [];
 
   const marriages = branch.marriages || [];
-  const marriageSpacing = 120;
+  const marriageSpacing = 140;
 
   marriages.forEach((marriage, i) => {
     const mx = x;
@@ -67,11 +62,11 @@ function drawBranch(branch, x, y) {
     group.push(line);
 
     const children = marriage.children || [];
-    const childSpacing = 100;
+    const childSpacing = 110;
 
     children.forEach((child, j) => {
       const cx = mx + (j - (children.length - 1) / 2) * childSpacing;
-      const cy = my + 80;
+      const cy = my + 90;
 
       const leaf = drawLeaf(child, cx, cy);
       const cline = drawLine(mx, my, cx, cy);
@@ -80,10 +75,8 @@ function drawBranch(branch, x, y) {
     });
   });
 
-  // hide children initially
   group.forEach(el => el.style.display = "none");
 
-  // toggle on branch label click
   svg.addEventListener("click", (e) => {
     if (e.target.textContent === branch.name) {
       expanded = !expanded;
@@ -125,7 +118,7 @@ function addText(text, x, y, cls) {
   svg.appendChild(t);
 }
 
-/* Zoom & pan */
+/* Zoom & Pan */
 
 function setupPanZoom() {
   svg.addEventListener("mousedown", (e) => {
@@ -181,7 +174,6 @@ function setupSearch() {
     const query = input.value.trim().toLowerCase();
     if (!query) return;
 
-    // clear previous highlights
     Array.from(svg.querySelectorAll(".leaf")).forEach(l => l.classList.remove("highlight"));
 
     const labels = Array.from(svg.querySelectorAll(".label"));
@@ -201,7 +193,6 @@ function setupSearch() {
     });
 
     if (firstMatch) {
-      // center view on first match
       viewBox.x = firstMatch.x - viewBox.w / 2;
       viewBox.y = firstMatch.y - viewBox.h / 2;
       updateViewBox();
