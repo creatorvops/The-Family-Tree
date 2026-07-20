@@ -42,6 +42,8 @@ h1 {
 /* Tree visuals */
 .trunk {
   fill: #5d4037;
+  stroke: #3e2723;
+  stroke-width: 4;
 }
 
 .branch-line {
