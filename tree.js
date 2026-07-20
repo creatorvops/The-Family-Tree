@@ -9,36 +9,23 @@ let dragging = false;
 let dragStart = { x: 0, y: 0 };
 
 let leaves = [];
+let treeData = null;
 
 async function loadTree() {
-  const data = await fetch("family.json").then(r => r.json());
-  drawTree(data);
-  animate();
+  treeData = await fetch("family.json").then(r => r.json());
+  draw();
+  requestAnimationFrame(animate);
 }
 
-function worldToScreen(x, y) {
-  return {
-    x: (x - view.x) * view.scale,
-    y: (y - view.y) * view.scale
-  };
-}
-
-function screenToWorld(x, y) {
-  return {
-    x: x / view.scale + view.x,
-    y: y / view.scale + view.y
-  };
-}
-
-function drawTree(data) {
-  leaves = [];
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   const trunkX = canvas.width / 2;
   const trunkY = canvas.height - 100;
 
   drawTrunk(trunkX, trunkY);
 
-  const branches = data.branches || [];
+  const branches = treeData.branches || [];
   const angleStep = Math.PI / (branches.length + 1);
 
   branches.forEach((branch, i) => {
@@ -56,12 +43,7 @@ function drawBranch(branch, x, y, angle, length) {
   const endX = x + Math.cos(angle) * length;
   const endY = y + Math.sin(angle) * length;
 
-  ctx.strokeStyle = "#4e342e";
-  ctx.lineWidth = 8;
-  ctx.beginPath();
-  ctx.moveTo(...Object.values(worldToScreen(x, y)));
-  ctx.lineTo(...Object.values(worldToScreen(endX, endY)));
-  ctx.stroke();
+  drawLine(x, y, endX, endY, 8);
 
   drawLabel(branch.name, endX, endY);
 
@@ -76,12 +58,7 @@ function drawMarriage(marriage, x, y, angle, length) {
   const endX = x + Math.cos(angle) * length;
   const endY = y + Math.sin(angle) * length;
 
-  ctx.strokeStyle = "#6d4c41";
-  ctx.lineWidth = 4;
-  ctx.beginPath();
-  ctx.moveTo(...Object.values(worldToScreen(x, y)));
-  ctx.lineTo(...Object.values(worldToScreen(endX, endY)));
-  ctx.stroke();
+  drawLine(x, y, endX, endY, 4);
 
   const children = marriage.children || [];
   children.forEach((child, i) => {
@@ -99,22 +76,28 @@ function drawLeaf(name, x, y, angle, length) {
   drawLabel(name, lx, ly);
 }
 
+function drawLine(x1, y1, x2, y2, width) {
+  ctx.strokeStyle = "#4e342e";
+  ctx.lineWidth = width;
+  ctx.beginPath();
+  ctx.moveTo((x1 - view.x) * view.scale, (y1 - view.y) * view.scale);
+  ctx.lineTo((x2 - view.x) * view.scale, (y2 - view.y) * view.scale);
+  ctx.stroke();
+}
+
 function drawLabel(text, x, y) {
-  const pos = worldToScreen(x, y);
   ctx.fillStyle = "#000";
   ctx.font = `${14 * view.scale}px Arial`;
   ctx.textAlign = "center";
-  ctx.fillText(text, pos.x, pos.y);
+  ctx.fillText(text, (x - view.x) * view.scale, (y - view.y) * view.scale);
 }
 
 function animate() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-
   leaves.forEach(leaf => {
     leaf.x += Math.sin(Date.now() * leaf.sway) * 0.3;
   });
 
-  loadTree();
+  draw();
   requestAnimationFrame(animate);
 }
 
@@ -123,24 +106,31 @@ canvas.addEventListener("wheel", (e) => {
   e.preventDefault();
   const zoom = e.deltaY < 0 ? 1.1 : 0.9;
 
-  const mouse = screenToWorld(e.offsetX, e.offsetY);
+  const mouseX = e.offsetX / view.scale + view.x;
+  const mouseY = e.offsetY / view.scale + view.y;
 
   view.scale *= zoom;
-  view.x = mouse.x - (e.offsetX / view.scale);
-  view.y = mouse.y - (e.offsetY / view.scale);
+
+  view.x = mouseX - e.offsetX / view.scale;
+  view.y = mouseY - e.offsetY / view.scale;
 });
 
 /* Pan */
 canvas.addEventListener("mousedown", (e) => {
   dragging = true;
-  dragStart = screenToWorld(e.clientX, e.clientY);
+  dragStart = { x: e.clientX, y: e.clientY };
 });
 
 canvas.addEventListener("mousemove", (e) => {
   if (!dragging) return;
-  const pos = screenToWorld(e.clientX, e.clientY);
-  view.x -= pos.x - dragStart.x;
-  view.y -= pos.y - dragStart.y;
+
+  const dx = (e.clientX - dragStart.x) / view.scale;
+  const dy = (e.clientY - dragStart.y) / view.scale;
+
+  view.x -= dx;
+  view.y -= dy;
+
+  dragStart = { x: e.clientX, y: e.clientY };
 });
 
 canvas.addEventListener("mouseup", () => dragging = false);
