@@ -1,0 +1,139 @@
+{
+  "name": "Mukum (Gwonum)",
+  "branches": [
+    {
+      "name": "Teyim Branch",
+      "marriages": [
+        {
+          "spouses": ["Teyim", "Ebod Sang"],
+          "children": ["Aaron"]
+        },
+        {
+          "spouses": ["Teyim", "₤Bih"],
+          "children": ["David Mukum", "Petro Tebd"]
+        },
+        {
+          "spouses": ["Teyim", "Other Wives"],
+          "children": [
+            "Ebodchick Beke",
+            "Rebecca",
+            "Ebodchick Womteck (Batibo)",
+            "Ebodchick Bageh (Batibo)"
+          ]
+        }
+      ]
+    },
+
+    {
+      "name": "Njeck Branch",
+      "marriages": [
+        {
+          "spouses": ["Njeck", "Ebod Susana (Natu)"],
+          "children": [
+            "Marcus Teyim",
+            "Febe Etih",
+            "Ebod Anwei",
+            "Engwari"
+          ]
+        },
+        {
+          "spouses": ["Njeck", "Ebod Nyaah"],
+          "children": [
+            "Ebodchick Kwodam",
+            "Ebodchick Tozeck"
+          ]
+        }
+      ]
+    },
+
+    {
+      "name": "Ebobchick Beke / Pa Casper Branch",
+      "marriages": [],
+      "children": []
+    },
+
+    {
+      "name": "Petro Tebo Branch",
+      "marriages": [],
+      "children": []
+    },
+
+    {
+      "name": "Aaron Branch",
+      "marriages": [],
+      "children": []
+    },
+
+    {
+      "name": "David Mukum Minor Branches",
+      "marriages": [],
+      "children": []
+    },
+
+    {
+      "name": "Other Teyim Branches",
+      "marriages": [],
+      "children": []
+    },
+
+    {
+      "name": "John Mukum Branch",
+      "marriages": [],
+      "children": []
+    },
+
+    {
+      "name": "Fritz Mukum Branch",
+      "marriages": [],
+      "children": []
+    },
+
+    {
+      "name": "Emmanuel Mukum Branch",
+      "marriages": [],
+      "children": []
+    },
+
+    {
+      "name": "Elizabeth Mukum Branch",
+      "marriages": [],
+      "children": []
+    },
+
+    {
+      "name": "Frida Mukum Branch",
+      "marriages": [],
+      "children": []
+    },
+
+    {
+      "name": "Marcus Mukum Branch",
+      "marriages": [],
+      "children": []
+    },
+
+    {
+      "name": "Marcus Teyim Branch",
+      "marriages": [],
+      "children": []
+    },
+
+    {
+      "name": "Febe Etih Branch",
+      "marriages": [],
+      "children": []
+    },
+
+    {
+      "name": "Ebod Anwei Branch",
+      "marriages": [],
+      "children": []
+    },
+
+    {
+      "name": "Other Njeck Branches",
+      "marriages": [],
+      "children": []
+    }
+  ]
+}
